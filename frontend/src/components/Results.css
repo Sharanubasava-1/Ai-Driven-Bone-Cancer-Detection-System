@@ -1,0 +1,111 @@
+.results-view {
+    padding: 1rem;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.results-title {
+    color: #3b82f6;
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.results-main-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: start;
+}
+
+.results-visuals {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.image-box {
+    width: 100%;
+    text-align: center;
+}
+
+.visual-title {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #9ca3af;
+    margin-bottom: 0.5rem;
+}
+
+/* --- FIX FOR LARGE IMAGE --- */
+.result-image {
+    max-width: 100%; /* Ensures the image scales down to fit its container */
+    height: auto;
+    border-radius: 8px;
+    background-color: #111827;
+    border: 1px solid #374151;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.results-analysis {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background-color: #1f2937;
+    border-radius: 8px;
+    font-size: 1.1rem;
+}
+
+.result-label {
+    color: #9ca3af;
+}
+
+.result-value {
+    font-weight: 700;
+}
+
+.result-value.malignant { color: #ef4444; }
+.result-value.benign { color: #22c55e; }
+
+.recommendation {
+    text-align: left;
+    margin-top: 1rem;
+    padding: 1rem;
+    background-color: #111827;
+    border-left: 4px solid #3b82f6;
+    border-radius: 4px;
+}
+
+.recommendation h4 {
+    margin-top: 0;
+    color: #e5e7eb;
+}
+
+.recommendation p {
+    color: #d1d5db;
+    line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+    .results-main-content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.button-group { display: flex; justify-content: center; gap: 16px; margin-top: 32px; flex-wrap: wrap; }
+.button { padding: 12px 24px; font-size: 16px; font-weight: 500; border-radius: 8px; border: 2px solid transparent; cursor: pointer; transition: all 0.2s ease-in-out; text-align: center; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background-color: #3b82f6; color: white; }
+.button:hover { background-color: #2563eb; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); }
+.button:active { transform: translateY(0); background-color: #1d4ed8; }
+.button.button-secondary { background-color: transparent; color: #3b82f6; border-color: #3b82f6; }
+.button.button-secondary:hover { background-color: rgba(59, 130, 246, 0.1); color: #2563eb; border-color: #2563eb; }
+.button.button-secondary:active { background-color: rgba(59, 130, 246, 0.2); }

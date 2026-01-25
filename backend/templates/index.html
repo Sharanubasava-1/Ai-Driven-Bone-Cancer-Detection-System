@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bone Cancer Detection AI</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+
+      :root {
+        --primary-color: #007bff;
+        --primary-hover: #0056b3;
+        --light-gray: #f8f9fa;
+        --medium-gray: #e9ecef;
+        --dark-gray: #6c757d;
+        --text-color: #343a40;
+        --border-radius: 12px;
+        --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+
+      body {
+        font-family: "Roboto", sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: var(--light-gray);
+        color: var(--text-color);
+      }
+
+      .container {
+        width: 100%;
+        max-width: 600px;
+        background: white;
+        padding: 40px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        text-align: center;
+        box-sizing: border-box;
+        margin: 20px;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+        color: var(--text-color);
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        color: var(--dark-gray);
+        margin-bottom: 30px;
+      }
+
+      .upload-area {
+        border: 3px dashed var(--medium-gray);
+        border-radius: var(--border-radius);
+        padding: 40px;
+        transition: border-color 0.3s, background-color 0.3s;
+        cursor: pointer;
+      }
+
+      .upload-area:hover,
+      .upload-area.dragover {
+        border-color: var(--primary-color);
+        background-color: #fafdff;
+      }
+
+      .upload-area input[type="file"] {
+        display: none;
+      }
+
+      .upload-icon {
+        font-size: 4rem;
+        color: var(--primary-color);
+      }
+
+      .upload-text {
+        font-size: 1.2rem;
+        font-weight: 500;
+        margin-top: 15px;
+      }
+
+      .upload-hint {
+        color: var(--dark-gray);
+        font-size: 0.9rem;
+      }
+
+      /* ▼▼▼ NEW STYLE FOR PATIENT NAME INPUT ▼▼▼ */
+      .input-group {
+        margin-top: 25px;
+        text-align: left;
+      }
+
+      .input-group label {
+        font-weight: 500;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .input-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid var(--medium-gray);
+        border-radius: 8px;
+        font-size: 1rem;
+        box-sizing: border-box;
+        transition: border-color 0.3s;
+      }
+
+      .input-group input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+      }
+
+      #image-preview-container {
+        margin-top: 30px;
+        display: none;
+      }
+
+      #image-preview {
+        max-width: 100%;
+        max-height: 300px;
+        border-radius: var(--border-radius);
+        border: 2px solid var(--medium-gray);
+      }
+
+      .submit-btn {
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 15px 40px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.2s;
+        margin-top: 30px;
+        display: block;
+        width: 100%;
+      }
+
+      .submit-btn:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-2px);
+      }
+
+      .submit-btn:disabled {
+        background-color: var(--dark-gray);
+        cursor: not-allowed;
+      }
+
+      .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid var(--primary-color);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 30px auto 0;
+        display: none;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>AI Bone Scan Analyzer</h1>
+        <p>Upload a bone X-ray or MRI to detect potential abnormalities.</p>
+      </div>
+
+      <!-- ▼▼▼ UPDATED FORM ACTION ▼▼▼ -->
+      <form
+        id="upload-form"
+        action="/api/predict"
+        method="post"
+        enctype="multipart/form-data"
+      >
+        <label for="file-upload" class="upload-area" id="upload-label">
+          <div class="upload-icon">⬆️</div>
+          <div class="upload-text">Click to upload or drag & drop</div>
+          <div class="upload-hint">Supports: JPG, JPEG, PNG</div>
+        </label>
+        <input
+          id="file-upload"
+          name="file"
+          type="file"
+          accept="image/png, image/jpeg, image/jpg"
+          required
+        />
+
+        <!-- ▼▼▼ ADDED PATIENT NAME INPUT FIELD ▼▼▼ -->
+        <div class="input-group">
+          <label for="patient-name">Patient Name</label>
+          <input
+            id="patient-name"
+            name="patient_name"
+            type="text"
+            placeholder="e.g., John Doe"
+            required
+          />
+        </div>
+
+        <div id="image-preview-container">
+          <img id="image-preview" src="#" alt="Image Preview" />
+        </div>
+
+        <button type="submit" class="submit-btn" id="submit-button">
+          Analyze Image
+        </button>
+        <div class="loader" id="loader"></div>
+      </form>
+    </div>
+
+    <script>
+      const uploadForm = document.getElementById("upload-form");
+      const fileUpload = document.getElementById("file-upload");
+      const uploadLabel = document.getElementById("upload-label");
+      const imagePreviewContainer = document.getElementById(
+        "image-preview-container"
+      );
+      const imagePreview = document.getElementById("image-preview");
+      const submitButton = document.getElementById("submit-button");
+      const loader = document.getElementById("loader");
+
+      // Handle file selection
+      fileUpload.addEventListener("change", function (event) {
+        const file = event.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            imagePreview.src = e.target.result;
+            imagePreviewContainer.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+
+      // Handle form submission
+      uploadForm.addEventListener("submit", function () {
+        // Disable button and show loader to prevent multiple submissions
+        submitButton.style.display = "none";
+        loader.style.display = "block";
+      });
+
+      // Drag and Drop functionality
+      ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
+        uploadLabel.addEventListener(eventName, preventDefaults, false);
+      });
+
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+
+      uploadLabel.addEventListener("dragover", () =>
+        uploadLabel.classList.add("dragover")
+      );
+      uploadLabel.addEventListener("dragleave", () =>
+        uploadLabel.classList.remove("dragover")
+      );
+      uploadLabel.addEventListener("drop", (e) => {
+        uploadLabel.classList.remove("dragover");
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+          fileUpload.files = files;
+          // Manually trigger the 'change' event to update the preview
+          const event = new Event("change");
+          fileUpload.dispatchEvent(event);
+        }
+      });
+    </script>
+  </body>
+</html>

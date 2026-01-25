@@ -1,0 +1,42 @@
+:root {
+    --primary-bg: #f0f4f8;
+    --secondary-bg: #ffffff;
+    --header-bg: #005A9C;
+    --text-color: #1a202c;
+    --header-text-color: #ffffff;
+    --accent-color: #3182ce;
+    --border-color: #cbd5e0;
+    --error-bg: #fff5f5;
+    --error-text: #c53030;
+    --font-family: 'Inter', sans-serif;
+}
+body { margin: 0; font-family: var(--font-family); background-color: var(--primary-bg); color: var(--text-color); }
+.container { width: 100%; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+.header { background: linear-gradient(90deg, #005A9C 0%, #0077B6 100%); padding: 2rem; border-radius: 12px; margin-bottom: 2rem; box-shadow: 0 10px 20px rgba(0, 90, 156, 0.2); color: var(--header-text-color); }
+.header h1 { margin: 0; font-size: 2.25rem; }
+.header p { margin: 0.5rem 0 0; font-size: 1.1rem; opacity: 0.9; }
+.tabs { display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 2rem; }
+.tab-button { background: none; border: none; color: var(--text-color); padding: 1rem 1.5rem; font-size: 1rem; font-weight: 500; cursor: pointer; position: relative; opacity: 0.7; transition: all 0.2s; }
+.tab-button:hover { opacity: 1; color: var(--accent-color); }
+.tab-button.active { opacity: 1; color: var(--accent-color); font-weight: 600; }
+.tab-button.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background-color: var(--accent-color); border-radius: 3px 3px 0 0; }
+.content-card { background-color: var(--secondary-bg); padding: 2.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.07); margin-bottom: 2rem; }
+h2 { text-align: center; margin-top: 0; font-weight: 600; color: #2d3748; }
+.drop-zone { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 200px; border: 2px dashed var(--border-color); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+.drop-zone:hover { background-color: #f7fafc; border-color: var(--accent-color); }
+.drop-zone-icon { font-size: 3rem; color: var(--accent-color); }
+.drop-zone p { margin-top: 1rem; text-align: center; }
+.browse-link { color: var(--accent-color); font-weight: 600; text-decoration: none; }
+.image-preview { max-width: 100%; max-height: 180px; border-radius: 4px; }
+.patient-name-input { margin-top: 1.5rem; }
+.patient-name-input input { width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; }
+.button { background-color: var(--accent-color); color: white; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 500; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; margin-top: 1.5rem; width: 100%; }
+.button:disabled { background-color: #a0aec0; cursor: not-allowed; }
+.error-card { background-color: var(--error-bg); border: 1px solid var(--error-text); color: var(--error-text); padding: 1.5rem; }
+.spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.results-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: center; }
+.results-grid img { width: 100%; border-radius: 8px; }
+.results-info p { margin: 0.5rem 0; font-size: 1.1rem; }
+.results-info strong { font-weight: 600; }
+.prediction-malignant { color: #e53e3e; font-weight: 700; }

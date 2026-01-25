@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Analysis Results</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+      :root {
+        --primary-color: #007bff;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --light-gray: #f8f9fa;
+        --text-color: #343a40;
+        --border-radius: 12px;
+        --box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+      }
+      body {
+        font-family: "Roboto", sans-serif;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: var(--light-gray);
+        color: var(--text-color);
+      }
+      .container {
+        width: 100%;
+        max-width: 550px;
+        background: white;
+        padding: 40px;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        text-align: center;
+        box-sizing: border-box;
+        margin: 20px;
+      }
+      .header {
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 20px;
+      }
+      h1 {
+        font-size: 2.2rem;
+        margin: 0;
+      }
+      .result-item {
+        font-size: 1.2rem;
+        margin: 15px 0;
+      }
+      .result-item strong {
+        color: #555;
+      }
+      .prediction-Malignant {
+        color: var(--danger-color);
+        font-weight: 700;
+      }
+      .prediction-Benign {
+        color: var(--success-color);
+        font-weight: 700;
+      }
+      .error-message {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 20px;
+        border-radius: var(--border-radius);
+        border: 1px solid #f5c6cb;
+        font-size: 1.2rem;
+        font-weight: 500;
+      }
+      .button-group {
+        margin-top: 30px;
+      }
+      .action-btn {
+        display: inline-block;
+        padding: 14px 28px;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background-color 0.3s, transform 0.2s;
+        margin: 0 10px;
+        min-width: 180px;
+      }
+      .action-btn:hover {
+        transform: translateY(-2px);
+      }
+      .download-btn {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      .back-btn {
+        background-color: #6c757d;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Check if there was an error -->
+      {% if results.error %}
+      <div class="header">
+        <h1>Analysis Failed</h1>
+      </div>
+      <div class="error-message">
+        <p>{{ results.error }}</p>
+      </div>
+      <div class="button-group">
+        <a href="{{ url_for('index') }}" class="action-btn back-btn"
+          >Try Another Image</a
+        >
+      </div>
+
+      <!-- If no error, show the results -->
+      {% else %}
+      <div class="header">
+        <h1>Analysis Complete</h1>
+      </div>
+      <div class="result-item">
+        <strong>Prediction:</strong>
+        <span class="prediction-{{ results.prediction }}"
+          >{{ results.prediction }}</span
+        >
+      </div>
+      <div class="result-item">
+        <strong>Confidence:</strong> {{ results.confidence }}%
+      </div>
+      <div class="result-item">
+        <strong>Patient:</strong> {{ results.patient_name }}
+      </div>
+
+      <div class="button-group">
+        <a
+          href="{{ url_for('download_report', 
+                                     prediction=results.prediction, 
+                                     confidence=results.confidence, 
+                                     recommendation=results.recommendation,
+                                     image_name=results.image_name,
+                                     patient_name=results.patient_name) }}"
+          class="action-btn download-btn"
+        >
+          Download PDF Report
+        </a>
+        <a href="{{ url_for('index') }}" class="action-btn back-btn"
+          >Analyze Another</a
+        >
+      </div>
+      {% endif %}
+    </div>
+  </body>
+</html>

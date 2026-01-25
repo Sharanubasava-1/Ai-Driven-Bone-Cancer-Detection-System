@@ -1,0 +1,31 @@
+# ===== Python =====
+__pycache__/
+*.pyc
+*.pyo
+.env
+venv/
+backend/venv/
+
+# ===== ML Models (DO NOT COMMIT) =====
+*.h5
+*.pt
+*.pth
+*.onnx
+models/
+backend/models/
+
+# ===== Uploaded images / runtime data =====
+backend/uploads/
+backend/static/uploads/
+
+# ===== Node =====
+node_modules/
+
+# ===== Build =====
+dist/
+build/
+
+# ===== OS / Editor =====
+.vscode/
+.DS_Store
+Thumbs.db
