@@ -1,5 +1,6 @@
 import base64
 import io
+import os
 from datetime import datetime
 from fpdf import FPDF
 
@@ -40,11 +41,28 @@ def create_pdf_report(result_data):
     pdf.cell(95, 8, 'Visual Evidence', 0, 1)
     pdf.set_font('Arial', '', 10)
     
-    original_image_b64 = result_data.get('original_image', '').split(',')[-1]
-    if original_image_b64:
-        image_bytes = base64.b64decode(original_image_b64)
+    image_path = result_data.get('image_path', '')
+    original_image = result_data.get('original_image', '')
+
+    if image_path and os.path.exists(image_path):
         pdf.cell(0, 7, "Original Image:", 0, 1)
-        pdf.image(io.BytesIO(image_bytes), w=80)
+        pdf.image(image_path, w=80)
+    else:
+        original_image_b64 = ''
+        if original_image.startswith('data:'):
+            original_image_b64 = original_image.split(',')[-1]
+        elif original_image and ',' in original_image:
+            original_image_b64 = original_image.split(',')[-1]
+
+        if original_image_b64:
+            try:
+                image_bytes = base64.b64decode(original_image_b64)
+                pdf.cell(0, 7, "Original Image:", 0, 1)
+                pdf.image(io.BytesIO(image_bytes), w=80)
+            except Exception:
+                pdf.cell(0, 7, "Original Image: unavailable", 0, 1)
+        elif original_image:
+            pdf.cell(0, 7, "Original Image: unavailable", 0, 1)
     
     y_after_images = pdf.get_y()
 

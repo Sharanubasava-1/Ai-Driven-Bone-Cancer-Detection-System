@@ -26,6 +26,9 @@ RUN npm run build
 # Use a lightweight Nginx image to serve the static files
 FROM nginx:stable-alpine
 
+# Serve the React SPA on direct route refreshes.
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
 # Copy the built static files from the 'build' stage
 COPY --from=build /app/build /usr/share/nginx/html
 

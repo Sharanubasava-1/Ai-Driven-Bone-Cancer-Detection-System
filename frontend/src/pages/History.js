@@ -97,12 +97,12 @@ const History = () => {
                 />
               )}
               <div>
-                <h4>{item.patientname || 'Unknown patient'}</h4>
-                <p><strong>Prediction:</strong> {item.prediction || 'N/A'}</p>
-                <p><strong>Confidence:</strong> {item.confidence != null ? `${item.confidence}%` : 'N/A'}</p>
-                <p><strong>Recommendation:</strong> {item.recommendation || 'N/A'}</p>
+                <h4>{item.patientname || item.patient_name || item.extra?.patient_name || item.rawrow?.patientname || item.rawrow?.patient_name || item.userid || 'Unknown patient'}</h4>
+                <p><strong>Prediction:</strong> {item.prediction || item.extra?.prediction || item.rawrow?.prediction || 'Not available'}</p>
+                <p><strong>Confidence:</strong> {item.confidence != null ? `${item.confidence}%` : (item.extra?.confidence != null ? `${item.extra.confidence}%` : (item.rawrow?.confidence != null ? `${item.rawrow.confidence}%` : 'Not available'))}</p>
+                <p><strong>Recommendation:</strong> {item.recommendation || item.extra?.recommendation || item.rawrow?.recommendation || 'Not available'}</p>
                 <p style={{ color: '#666', fontSize: 12 }}>
-                  {item.createdat ? new Date(item.createdat).toLocaleString() : 'N/A'}
+                  {item.createdat || item.created_at || item.extra?.created_at || item.rawrow?.created_at ? new Date(item.createdat || item.created_at || item.extra?.created_at || item.rawrow?.created_at).toLocaleString() : 'Not available'}
                 </p>
               </div>
               <div style={{ marginTop: 10 }}>

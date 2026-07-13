@@ -1,8 +1,9 @@
-
 import os
 import shutil
+import json
 from datetime import datetime
 from urllib.parse import quote
+
 
 # -------------------------------
 # Flask + Web
@@ -14,6 +15,7 @@ from flask import (
 from werkzeug.utils import secure_filename, safe_join
 from flask_cors import CORS
 
+
 # -------------------------------
 # Machine Learning / Image Processing
 # -------------------------------
@@ -21,10 +23,12 @@ import tensorflow as tf
 import cv2
 import numpy as np
 
+
 # -------------------------------
 # PDF Generation
 # -------------------------------
-from weasyprint import HTML
+from pdf_generator import create_pdf_report
+
 
 # -------------------------------
 # Supabase Client (optional)
@@ -35,14 +39,17 @@ except Exception:
     create_client = None
     Client = None
 
+
 # -------------------------------
 # Environment Variables
 # -------------------------------
 from dotenv import load_dotenv
 load_dotenv()
 
+
 # --- Configuration ---
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -54,17 +61,26 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
 
+supabase = None
 if create_client and SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+        app_supabase_msg = "Supabase client initialized"
+    except Exception as e:
+        app_supabase_msg = f"Supabase client disabled: {e}"
+        supabase = None
 else:
-    supabase = None
+    app_supabase_msg = "Supabase client disabled: missing URL or key"
 
 app = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'))
 CORS(app)
 
+app.logger.warning(app_supabase_msg)
+
 # ensure folders exist
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(STATIC_UPLOADS, exist_ok=True)
+
 
 # --- Load models (if present) ---
 try:
@@ -76,9 +92,69 @@ except Exception as e:
     gatekeeper_model = None
     classification_model = None
 
+
 # --- Helpers ---
 def allowed_file(filename: str) -> bool:
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _extract_created_at_from_filename(filename: str):
+    """Best-effort timestamp from filenames like userid_20260713T094351Z_image.jpg."""
+    try:
+        stem = os.path.splitext(os.path.basename(filename))[0]
+        parts = stem.split('_')
+        for part in parts:
+            if len(part) == 16 and part.endswith('Z') and 'T' in part:
+                return datetime.strptime(part, '%Y%m%dT%H%M%SZ').isoformat()
+    except Exception:
+        pass
+    return None
+
+
+def _best_effort_local_history_record(user_id: str, filename: str, metadata: dict | None = None):
+    metadata = metadata or {}
+    basename = os.path.basename(filename)
+    local_path = os.path.join(os.path.abspath(UPLOAD_FOLDER), basename)
+    if not os.path.exists(local_path):
+        return None
+
+    prediction = metadata.get('prediction')
+    confidence = metadata.get('confidence')
+    recommendation = metadata.get('recommendation')
+    if prediction is None or confidence is None or recommendation is None:
+        analysis = get_prediction(local_path)
+        if analysis and not analysis.get('error'):
+            prediction = prediction or analysis.get('prediction')
+            confidence = confidence if confidence is not None else analysis.get('confidence')
+            recommendation = recommendation or analysis.get('recommendation')
+
+    created_at = metadata.get('created_at') or _extract_created_at_from_filename(basename)
+    if not created_at:
+        try:
+            created_at = datetime.fromtimestamp(os.path.getmtime(local_path)).isoformat()
+        except Exception:
+            created_at = None
+
+    patient_name = metadata.get('patient_name')
+    if not patient_name:
+        patient_name = metadata.get('patientname') or user_id
+
+    return {
+        'id': metadata.get('id'),
+        'user_id': user_id,
+        'image_path': basename,
+        'prediction': prediction,
+        'confidence': confidence,
+        'recommendation': recommendation,
+        'patientname': patient_name,
+        'extra': {
+            'localfilename': metadata.get('local_filename', basename),
+            'patient_name': metadata.get('patient_name'),
+            'created_at': created_at,
+        },
+        'created_at': created_at,
+    }
+
 
 def get_prediction(image_path: str) -> dict:
     """
@@ -113,12 +189,14 @@ def get_prediction(image_path: str) -> dict:
         app.logger.exception("Prediction error")
         return {"error": "An error occurred during prediction."}
 
+
 # -------------------------------
 # Supabase helpers
 # -------------------------------
 SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "images")
 
 _supabase_client = None
+
 
 def init_supabase():
     global _supabase_client
@@ -129,6 +207,7 @@ def init_supabase():
             raise RuntimeError("supabase package not available")
         _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
     return _supabase_client
+
 
 def _normalize_supabase_response(res):
     out = {"status_code": None, "data": None, "error": None, "raw_type": type(res).__name__}
@@ -153,11 +232,13 @@ def _normalize_supabase_response(res):
         out["error"] = f"normalize_error: {e}"
     return out
 
+
 def supabase_path_to_urlsafe(path: str) -> str:
     if not path:
         return path
     parts = path.split('/')
     return '/'.join(quote(p, safe='') for p in parts)
+
 
 def upload_file_to_supabase(local_filepath: str, dest_path: str = None, bucket: str = None) -> dict:
     """
@@ -213,6 +294,7 @@ def upload_file_to_supabase(local_filepath: str, dest_path: str = None, bucket: 
 
     return {"status": "success", "path": dest_path, "public_url": public_url, "signed_url": signed_url, "upload_response": norm}
 
+
 def insert_image_record(safeuserid, storage_path, prediction, confidence, recommendation, patientname=None, extra=None):
     """
     Insert image analysis record into Supabase.
@@ -258,6 +340,7 @@ def insert_image_record(safeuserid, storage_path, prediction, confidence, recomm
             "payload": payload
         }
 
+
 def get_request_userid():
     """
     Extract user id from query param, header X-User-Id, form field 'userid', or Authorization Bearer.
@@ -284,6 +367,7 @@ def get_request_userid():
     except Exception:
         return None
 
+
 # -------------------------------
 # Routes
 # -------------------------------
@@ -291,6 +375,7 @@ def get_request_userid():
 @app.route('/', methods=['GET'])
 def index():
     return "Flask backend is running."
+
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
@@ -360,39 +445,32 @@ def predict():
         else:
             upload_res = {"status":"error","error":"supabase_not_configured"}
 
-        # attempt DB insert (optional) ✅ CORRECTED SECTION
+        # attempt DB insert (optional)
         insert_res = None
         if SUPABASE_URL and SUPABASE_KEY and create_client is not None:
             try:
-                # ✅ CONVERT CONFIDENCE TO FLOAT FIRST
-                confidence_value = float(conf.replace('%', '')) if isinstance(conf, str) else float(conf)
-                
                 raw_insert = insert_image_record(
                     safe_userid,
                     supa_path or f"{safe_userid}/{unique_filename}",
                     pred,
-                    confidence_value,  # ✅ PASS THE FLOAT VALUE HERE
+                    float(conf) if conf is not None else None,
                     rec,
                     request.form.get('patient_name'),
                     {'localfilename': unique_filename, 'storageurl': supa_url}
                 )
-                
+                # Extract only serializable data
                 if raw_insert and raw_insert.get("status") == "success":
                     insert_res = {
                         "status": "success",
-                        "message": "Record inserted successfully",
-                        "data": raw_insert.get("data")
+                        "message": "Record inserted successfully"
                     }
-                    app.logger.info(f"✅ DB Insert Success: {pred}, {confidence_value}%, Patient: {request.form.get('patient_name', 'Unknown')}")
                 else:
                     insert_res = {
                         "status": "error",
                         "error": raw_insert.get("error") if raw_insert else "Unknown error"
                     }
-                    app.logger.error(f"❌ DB Insert Failed: {insert_res}")
             except Exception as ie:
                 insert_res = {"status":"error","error": str(ie)}
-                app.logger.exception(f"DB Insert Exception: {ie}")
         else:
             insert_res = {"status":"error","error":"supabase_not_configured"}
 
@@ -432,6 +510,7 @@ def predict():
     except Exception as e:
         app.logger.exception("Predict failed")
         return jsonify({"status":"error","error":"Internal server error","details": str(e)}), 500
+
 
 @app.route('/api/history/<patient_id>', methods=['GET'])
 def get_history(patient_id):
@@ -497,6 +576,7 @@ def get_history(patient_id):
             'details': str(e)
         }), 500
 
+
 @app.route('/api/report', methods=['GET'])
 def get_report():
     """
@@ -531,17 +611,23 @@ def get_report():
             try:
                 candidates = sorted(os.listdir(UPLOAD_FOLDER), reverse=True)
                 for fname in candidates:
-                    if fname.startswith(f"{userid}_"):
-                        rows.append({
-                            'id': None,
-                            'user_id': userid,
-                            'image_path': fname,
-                            'prediction': None,
-                            'confidence': None,
-                            'recommendation': None,
-                            'extra': {'localfilename': fname},
-                            'created_at': None
-                        })
+                    if not fname.startswith(f"{userid}_"):
+                        continue
+                    if fname.endswith('.json'):
+                        continue
+
+                    metadata = {}
+                    metadata_path = os.path.join(UPLOAD_FOLDER, f"{fname}.json")
+                    if os.path.exists(metadata_path):
+                        try:
+                            with open(metadata_path, 'r', encoding='utf-8') as handle:
+                                metadata = json.load(handle) or {}
+                        except Exception as e:
+                            app.logger.debug(f"Metadata load failed for {metadata_path}: {e}")
+
+                    fallback_record = _best_effort_local_history_record(userid, fname, metadata)
+                    if fallback_record:
+                        rows.append(fallback_record)
             except Exception as e:
                 app.logger.debug(f"Local scan error: {e}")
         
@@ -605,8 +691,8 @@ def get_report():
                 prediction=r.get('prediction') or 'N/A',
                 confidence=str(r.get('confidence') or 'N/A'),
                 recommendation=r.get('recommendation') or 'N/A',
-                image_name=os.path.basename(imagepath) or '',
-                patient_name=patientname_value or 'Anonymous',
+                image_name=os.path.basename(imagepath) or '',  # ← Fixed: image_name
+                patient_name=patientname_value or 'Anonymous',  # ← Fixed: patient_name
                 _external=True
             )
 
@@ -614,12 +700,15 @@ def get_report():
                 'id': r.get('id'),
                 'userid': r.get('user_id'),
                 'imagepath': imagepath,
+                'localfilename': r.get('extra', {}).get('localfilename') if isinstance(r.get('extra'), dict) else '',
+                'patient_name': patientname_value,
                 'prediction': r.get('prediction'),
                 'confidence': r.get('confidence'),
                 'recommendation': r.get('recommendation'),
                 'patientname': patientname_value,
                 'extra': r.get('extra'),
                 'createdat': r.get('created_at'),
+                'created_at': r.get('created_at'),
                 'publicurl': publicurl,
                 'signedurl': signedurl,
                 'backenduploadurl': backenduploadurl,
@@ -632,6 +721,7 @@ def get_report():
     except Exception as e:
         app.logger.exception("/api/report failed")
         return jsonify({"status":"error","error":"Internal server error","details":str(e)}), 500
+
 
 @app.route('/uploads/<path:filename>')
 def serve_upload(filename):
@@ -649,6 +739,7 @@ def serve_upload(filename):
         app.logger.exception("serve_upload error")
         return abort(500)
 
+
 @app.route('/download_report')
 def download_report():
     """
@@ -663,26 +754,42 @@ def download_report():
 
         # try static/uploads first then backend uploads
         image_url = None
+        image_path = None
         basename = os.path.basename(image_name)
         static_candidate = os.path.join(app.static_folder or 'static', 'uploads', basename)
         if os.path.exists(static_candidate):
             image_url = url_for('static', filename=f'uploads/{basename}', _external=True)
+            image_path = static_candidate
         else:
             uploads_candidate = os.path.join(os.path.abspath(UPLOAD_FOLDER), basename)
             if os.path.exists(uploads_candidate):
                 image_url = url_for('serve_upload', filename=quote(basename, safe=''), _external=True)
+                image_path = uploads_candidate
 
-        image_url = image_url or ""
+        confidence_value = 0.0
+        try:
+            confidence_value = float(confidence)
+            if confidence_value > 1:
+                confidence_value = confidence_value / 100.0
+        except Exception:
+            confidence_value = 0.0
 
-        rendered = render_template('report_template.html',
-                                   prediction=prediction,
-                                   confidence=confidence,
-                                   recommendation=recommendation,
-                                   image_name=image_name,
-                                   patient_name=patient_name,
-                                   image_path=image_url,
-                                   date=datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        pdf = HTML(string=rendered).write_pdf()
+        pdf_payload = {
+            "patient_name": patient_name,
+            "filename": image_name,
+            "timestamp": datetime.now().isoformat(),
+            "original_image": image_url or "",
+            "image_path": image_path or "",
+            "classification": {
+                "predicted_class": prediction,
+                "confidence": confidence_value,
+            },
+            "analysis": {
+                "confidence_level": confidence,
+                "recommendation": recommendation,
+            },
+        }
+        pdf = create_pdf_report(pdf_payload)
         response = make_response(pdf)
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'attachment; filename=report_{secure_filename(image_name)}.pdf'
@@ -691,6 +798,7 @@ def download_report():
         app.logger.exception("download_report failed")
         return "Error generating PDF", 500
 
+
 # start server
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    app.run(debug=True, host='0.0.0.0', port=5000)

@@ -29,3 +29,15 @@ build/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# ===== Large Datasets (DO NOT COMMIT) =====
+BTXRD/
+classification_data/
+training_dataset/
+
+# ===== Python Venv Addition =====
+.venv/
+
+# ===== Agent / Temporary Files =====
+backend/.agents/
+backend/skills-lock.json
