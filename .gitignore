@@ -7,12 +7,10 @@ venv/
 backend/venv/
 
 # ===== ML Models (DO NOT COMMIT) =====
-*.h5
 *.pt
 *.pth
 *.onnx
-models/
-backend/models/
+/models/
 
 # ===== Uploaded images / runtime data =====
 backend/uploads/
